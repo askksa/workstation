@@ -1,0 +1,2 @@
+1.Running git-config-global.sh
+2.Existing repositories can be reinitialized with the proper templates by running git init in the same directory .git is in

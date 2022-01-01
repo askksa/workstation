@@ -1,0 +1,24 @@
+
+.PHONY:clean FORCE
+
+-include $(obj)/makefile
+
+obj-y:=$(addprefix $(obj)/,$(obj-y))
+lib-y:=$(addprefix $(obj)/,$(lib-y))
+subdir-y:=$(addprefix $(obj)/,$(subdir-y))
+
+ifneq ($(lib-y),)
+	lib-target:=$(obj)/lib$(patsubst %.o,%,$(notdir $(lib-y))).a
+endif
+
+ifneq ($(obj-y),)
+	bin:=$(patsubst %.o,%,$(obj-y))
+endif
+
+clean:$(subdir-y)
+	rm -rf $(lib-target) $(bin) $(obj)/*.o
+
+$(subdir-y):FORCE
+	make -f makefile.clean obj=$(subdir-y)
+
+FORCE:

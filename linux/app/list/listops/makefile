@@ -1,0 +1,1 @@
+lib-y:=listops.o

@@ -1,0 +1,6 @@
+[PROJECT][MODULE]<subject>
+
+[Description]
+
+[ticket] = mantis_<id>
+

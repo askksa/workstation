@@ -1,0 +1,72 @@
+root_dir:=$(shell pwd)
+
+ifneq ($(CROSS_COMPILE),)
+cc?=$(CROSS_COMPILE)gcc
+ar?=$(CROSS_COMPILE)ar
+ld?=$(CROSS_COMPILE)ld
+else
+cc?=gcc
+ar?=ar
+ld?=ld
+endif
+cc_flags:=
+
+obj-y:=
+lib-y:=
+subdir-y:=
+dep_libs:=
+lib_dirs:=
+
+-include $(obj)/makefile
+
+multi-used-y := $(sort $(foreach m,$(obj-y), $(if $(strip $($(m:.o=-objs))), $(m))))
+multi-objs-y := $(foreach m, $(multi-used-y), $($(m:.o=-objs)))
+lib-multi-used-y := $(sort $(foreach m,$(lib-y), $(if $(strip $($(m:.o=-objs))), $(m))))
+lib-multi-objs-y := $(foreach m, $(lib-multi-used-y), $($(m:.o=-objs)))
+
+obj-y := $(addprefix $(obj)/,$(obj-y))
+lib-y := $(addprefix $(obj)/,$(lib-y))
+multi-used-y := $(addprefix $(obj)/,$(multi-used-y))
+multi-objs-y := $(addprefix $(obj)/,$(multi-objs-y))
+lib-multi-used-y := $(addprefix $(obj)/,$(lib-multi-used-y))
+lib-multi-objs-y := $(addprefix $(obj)/,$(lib-multi-objs-y))
+subdir-y:=$(addprefix $(obj)/,$(subdir-y))
+
+ld_flag:=$(foreach lib_name,$(dep_libs),-l$(lib_name))
+ld_dir:=$(foreach dir_name,$(lib_dirs),-L$(root_dir)/$(obj)/$(dir_name))
+
+ifneq ($(lib-y),)
+	lib-target:=$(obj)/lib$(patsubst %.o,%,$(notdir $(lib-y))).a
+endif
+
+ifneq ($(obj-y),)
+	bin:=$(patsubst %.o,%,$(obj-y))
+endif
+
+.PHONY:all clean FORCE
+
+all:$(lib-target) $(bin)
+
+$(obj)/%.o:$(obj)/%.c
+	$(cc) $(cc_flags) -c -o $@ $^
+
+$(multi-used-y):$(multi-objs-y)
+	$(ld) -r -o $@ $^
+
+$(lib-multi-used-y):$(lib-multi-objs-y)
+	$(cc) -o $@ $^
+
+$(bin):$(obj-y) $(subdir-y)
+	$(cc) -o $@ $< $(ld_flag) $(ld_dir)
+
+$(obj)/%.a:$(lib-y) $(subdir-y)
+	$(ar) rcs $@ $<
+
+$(obj)/%.so:$(lib-y) $(subdir-y)
+	$(cc) -shared -fpic $(cc_flags) $< $(ld_flag) $(ld_dir) -o $@
+
+$(subdir-y):FORCE
+	make -f makefile.build obj=$(subdir-y)
+
+FORCE:
+
